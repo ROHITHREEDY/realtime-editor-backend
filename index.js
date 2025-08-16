@@ -1,30 +1,35 @@
 const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
+const mongoose = require('mongoose');
+const cors = require('cors');
 
 const app = express();
-const server = http.createServer(app);
-const io = socketIo(server, { cors: { origin: '*' } });
 
-const PORT = process.env.PORT || 3001;
+// Middleware
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:3000'
+}));
+app.use(express.json());
 
-io.on('connection', (socket) => {
-  console.log('A user connected:', socket.id);
+// MongoDB connection (production-ready)
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/realtime-editor');
 
-  socket.on('send-changes', (data) => {
-    // Broadcast text changes to all other users
-    socket.broadcast.emit('receive-changes', data);
-  });
+// Import authentication middleware
+const authenticateToken = require('./middleware/auth');
 
-  socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
-  });
-});
+// Import and use routes
+const authRoutes = require('./routes/auth');
+const documentRoutes = require('./routes/documents');
 
+app.use('/api/auth', authRoutes);
+app.use('/api/documents', authenticateToken, documentRoutes);
+
+// Test route
 app.get('/', (req, res) => {
-  res.send('Server is running!');
+  res.json({ message: 'Backend server is running!' });
 });
 
-server.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+// Start server
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
