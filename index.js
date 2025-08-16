@@ -6,7 +6,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, { cors: { origin: '*' } });
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 io.on('connection', (socket) => {
   console.log('A user connected:', socket.id);
